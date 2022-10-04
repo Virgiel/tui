@@ -1,0 +1,16 @@
+[package]
+name = "tui"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+# Terminal library
+crossterm = "0.25"
+# Compute unicode printed width
+unicode-width = "0.1"
+# Compute unicode grapheme
+unicode-segmentation = "1.10"
+# Bitflags helper macro
+bitflags = "1.3"
