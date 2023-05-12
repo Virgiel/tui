@@ -3,7 +3,6 @@ use std::io::{self, Stdout};
 use bitflags::bitflags;
 use crossterm::{queue, style::SetAttribute};
 
-
 pub use crossterm::style::{Attribute, Color};
 
 use crate::io_err;
@@ -70,29 +69,29 @@ pub struct Style {
     pub(crate) modifier: Modifier,
 }
 
-pub fn none() -> Style {
-    Style::default()
+pub const fn none() -> Style {
+    Style {
+        fg: None,
+        bg: None,
+        modifier: Modifier::empty(),
+    }
 }
 
 impl Default for Style {
     fn default() -> Style {
-        Style {
-            fg: None,
-            bg: None,
-            modifier: Modifier::empty(),
-        }
+        none()
     }
 }
 
 impl Style {
     /// Changes the foreground color
-    pub fn fg(mut self, color: Color) -> Style {
+    pub const fn fg(mut self, color: Color) -> Style {
         self.fg = Some(color);
         self
     }
 
     /// Changes the background color
-    pub fn bg(mut self, color: Color) -> Style {
+    pub const fn bg(mut self, color: Color) -> Style {
         self.bg = Some(color);
         self
     }
@@ -100,9 +99,13 @@ impl Style {
     pub fn bold(self) -> Style {
         self.add_modifier(Modifier::BOLD)
     }
-    
+
     pub fn dim(self) -> Style {
         self.add_modifier(Modifier::DIM)
+    }
+
+    pub fn underline(self) -> Style {
+        self.add_modifier(Modifier::UNDERLINED)
     }
 
     pub fn clear_emphasis(self) -> Style {

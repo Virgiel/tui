@@ -9,9 +9,9 @@ mod buffer;
 mod style;
 mod terminal;
 
+pub use crossterm;
 pub use style::{none, Color, Style};
 pub use terminal::Terminal;
-pub use crossterm;
 pub use unicode_segmentation;
 pub use unicode_width;
 
@@ -91,6 +91,14 @@ pub struct Line<'a> {
 }
 
 impl<'a> Line<'a> {
+    /// Set default background of the canvas
+    pub fn bg(&mut self, color: Color) -> &mut Self {
+        for i in self.index..self.index+self.remaining {
+            self.buf.char_at(i, ' ', none().bg(color))
+        }
+        self
+    }
+
     /// Write styled text at the beginning of the line
     pub fn draw(&mut self, text: impl fmt::Display, style: Style) -> &mut Self {
         Writer { line: self, style }
@@ -141,6 +149,19 @@ pub struct Canvas<'a> {
 }
 
 impl<'a> Canvas<'a> {
+    /* ----- Style ---- */
+
+    /// Set default background of the canvas
+    pub fn bg(&mut self, color: Color) -> &mut Self {
+        let area = self.area;
+        while self.area.h > 0 {
+            self.top().bg(color);
+        }
+        self.area = area;
+        self
+    }
+
+
     /* ----- Lines ----- */
 
     /// Get first line

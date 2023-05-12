@@ -37,6 +37,13 @@ impl Terminal {
     /// Wrapper around Terminal initialization. Each buffer is initialized with a blank string and
     /// default colors for the foreground and the background
     pub fn new(mut stdout: io::Stdout) -> io::Result<Terminal> {
+        let prev = std::panic::take_hook();
+        std::panic::set_hook(Box::new(move |info| {
+            execute!(io::stdout(), LeaveAlternateScreen).ok();
+            disable_raw_mode().ok();
+            prev(info);
+            loop {}
+        }));
         enable_raw_mode()?;
         execute!(stdout, EnterAlternateScreen)?;
         Ok(Terminal {
