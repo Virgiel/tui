@@ -16,8 +16,8 @@ pub use unicode_segmentation;
 pub use unicode_width;
 
 /// A rectangular area
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
-struct Area {
+#[derive(Debug, Default, PartialEq, Eq)]
+pub struct Area {
     x: usize,
     y: usize,
     w: usize,
@@ -25,19 +25,28 @@ struct Area {
 }
 
 impl Area {
-    /// Remove top line
-    fn consume(&mut self) {
-        if self.h > 0 {
-            self.y += 1;
-            self.h -= 1;
-        }
+    /// Consume top lines
+    fn top(&mut self, h: usize) -> Area {
+        let tmp = Area {
+            h: h.min(self.h),
+            ..*self
+        };
+
+        self.y += tmp.h;
+        self.h -= tmp.h;
+        tmp
     }
 
-    /// Remove bottom line
-    fn rconsume(&mut self) {
-        if self.h > 0 {
-            self.h -= 1
-        }
+    /// Consume btm lines
+    fn btm(&mut self, h: usize) -> Area {
+        let tmp = Area {
+            h: h.min(self.h),
+            y: self.y + self.h - h.min(self.h),
+            ..*self
+        };
+
+        self.h -= tmp.h;
+        tmp
     }
 }
 
@@ -91,12 +100,21 @@ pub struct Line<'a> {
 }
 
 impl<'a> Line<'a> {
-    /// Set default background of the canvas
-    pub fn bg(&mut self, color: Color) -> &mut Self {
-        for i in self.index..self.index+self.remaining {
-            self.buf.char_at(i, ' ', none().bg(color))
+    pub fn new(c: &'a mut Canvas, area: Area) -> Self {
+        assert!(area.h <= 1);
+        if area.h > 0 {
+            Line {
+                index: c.buf.index_of(area.x, area.y),
+                remaining: area.w,
+                buf: c.buf,
+            }
+        } else {
+            Line {
+                index: 0,
+                remaining: 0,
+                buf: c.buf,
+            }
         }
-        self
     }
 
     /// Write styled text at the beginning of the line
@@ -149,57 +167,24 @@ pub struct Canvas<'a> {
 }
 
 impl<'a> Canvas<'a> {
-    /* ----- Style ---- */
-
-    /// Set default background of the canvas
-    pub fn bg(&mut self, color: Color) -> &mut Self {
-        let area = self.area;
-        while self.area.h > 0 {
-            self.top().bg(color);
-        }
+    /// Line from reserved area
+    pub fn consume(&mut self, area: Area) -> &mut Self {
         self.area = area;
         self
     }
-
 
     /* ----- Lines ----- */
 
     /// Get first line
     pub fn top(&mut self) -> Line {
-        if self.area.h > 0 {
-            let index = self.index_of(0, 0);
-            self.area.consume();
-            Line {
-                index,
-                remaining: self.area.w,
-                buf: self.buf,
-            }
-        } else {
-            Line {
-                index: 0,
-                remaining: 0,
-                buf: self.buf,
-            }
-        }
+        let area = self.area.top(1);
+        Line::new(self, area)
     }
 
     /// Get last line
     pub fn btm(&mut self) -> Line {
-        if self.area.h > 0 {
-            let index = self.index_of(0, self.area.h - 1);
-            self.area.rconsume();
-            Line {
-                index,
-                remaining: self.area.w,
-                buf: self.buf,
-            }
-        } else {
-            Line {
-                index: 0,
-                remaining: 0,
-                buf: self.buf,
-            }
-        }
+        let area = self.area.btm(1);
+        Line::new(self, area)
     }
 
     /* ----- Utils ----- */
@@ -233,11 +218,6 @@ impl<'a> Canvas<'a> {
         }
     }
 
-    /// Get index at pos in canvas part
-    fn index_of(&self, x: usize, y: usize) -> usize {
-        self.buf.index_of(self.area.x + x, self.area.y + y)
-    }
-
     /* ----- Area ----- */
 
     /// Covered height
@@ -251,27 +231,22 @@ impl<'a> Canvas<'a> {
     }
 
     /// Split canvas
-    pub fn split(&self) -> SplitBuilder {
+    pub fn split(&mut self) -> SplitBuilder {
         SplitBuilder {
-            area: self.area,
+            area: std::mem::take(&mut self.area),
             vertical: false,
             gap: 0,
         }
     }
-}
 
-pub struct Split {
-    first: Area,
-    second: Area,
-}
-
-impl Split {
-    pub fn first(&self, c: &mut Canvas) {
-        c.area = self.first;
+    /// Reserve top lines
+    pub fn reserve_top(&mut self, n: usize) -> Area {
+        self.area.top(n)
     }
 
-    pub fn second(&self, c: &mut Canvas) {
-        c.area = self.second;
+    /// Reserve btm lines
+    pub fn reserve_btm(&mut self, n: usize) -> Area {
+        self.area.btm(n)
     }
 }
 
@@ -292,35 +267,35 @@ impl SplitBuilder {
         self
     }
 
-    pub fn apply(self) -> Split {
+    pub fn apply(self) -> (Area, Area) {
         if self.vertical {
             let space = self.area.h - self.gap;
             let (first, second) = (space / 2, space / 2 + space % 2);
-            Split {
-                first: Area {
+            (
+                Area {
                     h: first,
                     ..self.area
                 },
-                second: Area {
+                Area {
                     y: self.area.y + self.gap + first,
                     h: second,
                     ..self.area
                 },
-            }
+            )
         } else {
             let space = self.area.w - self.gap;
             let (first, second) = (space / 2, space / 2 + space % 2);
-            Split {
-                first: Area {
+            (
+                Area {
                     w: first,
                     ..self.area
                 },
-                second: Area {
+                Area {
                     x: self.area.x + self.gap + first,
                     w: second,
                     ..self.area
                 },
-            }
+            )
         }
     }
 }
