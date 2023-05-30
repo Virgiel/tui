@@ -8,6 +8,7 @@ pub use crossterm::style::{Attribute, Color};
 use crate::io_err;
 
 bitflags! {
+    #[derive(Clone, Debug, Copy, PartialEq, Eq)]
     pub(crate) struct Modifier: u8 {
         const BOLD              = 0b0000_0001;
         const DIM               = 0b0000_0010;
@@ -20,7 +21,7 @@ bitflags! {
 
 impl Modifier {
     pub fn diff(w: &mut Stdout, from: Modifier, to: Modifier) -> io::Result<()> {
-        for removed in IterModifier(from - to) {
+        for removed in (from - to).iter() {
             match removed {
                 Modifier::REVERSED => io_err(queue!(w, SetAttribute(Attribute::NoReverse)))?,
                 Modifier::BOLD => io_err(queue!(w, SetAttribute(Attribute::NormalIntensity)))?,
@@ -31,7 +32,7 @@ impl Modifier {
                 _ => unreachable!("Unknown modifier flag"),
             }
         }
-        for added in IterModifier(to - from) {
+        for added in (to - from).iter() {
             match added {
                 Modifier::REVERSED => io_err(queue!(w, SetAttribute(Attribute::Reverse)))?,
                 Modifier::BOLD => io_err(queue!(w, SetAttribute(Attribute::Bold)))?,
@@ -43,22 +44,6 @@ impl Modifier {
             }
         }
         Ok(())
-    }
-}
-
-struct IterModifier(Modifier);
-
-impl Iterator for IterModifier {
-    type Item = Modifier;
-    fn next(&mut self) -> Option<Modifier> {
-        if self.0.is_empty() {
-            None
-        } else {
-            let bits = 1 << self.0.bits().trailing_zeros();
-            let r = unsafe { Modifier::from_bits_unchecked(bits) };
-            self.0.remove(r);
-            Some(r)
-        }
     }
 }
 
@@ -103,9 +88,21 @@ impl Style {
     pub fn dim(self) -> Style {
         self.add_modifier(Modifier::DIM)
     }
+    
+    pub fn italic(self) -> Style {
+        self.add_modifier(Modifier::ITALIC)
+    }
 
     pub fn underline(self) -> Style {
         self.add_modifier(Modifier::UNDERLINED)
+    }
+
+    pub fn reversed(self) -> Style {
+        self.add_modifier(Modifier::REVERSED)
+    }
+
+    pub fn croosed_out(self) -> Style {
+        self.add_modifier(Modifier::CROSSED_OUT)
     }
 
     pub fn clear_emphasis(self) -> Style {
