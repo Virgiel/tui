@@ -5,7 +5,7 @@ edition = "2021"
 
 [dependencies]
 # Terminal library
-crossterm = "0.26.1"
+crossterm = "0.27.0"
 # Compute unicode printed width
 unicode-width = "0.1"
 # Compute unicode grapheme

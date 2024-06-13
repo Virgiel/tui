@@ -5,8 +5,6 @@ use crossterm::{queue, style::SetAttribute};
 
 pub use crossterm::style::{Attribute, Color};
 
-use crate::io_err;
-
 bitflags! {
     #[derive(Clone, Debug, Copy, PartialEq, Eq)]
     pub(crate) struct Modifier: u8 {
@@ -23,23 +21,23 @@ impl Modifier {
     pub fn diff(w: &mut Stdout, from: Modifier, to: Modifier) -> io::Result<()> {
         for removed in (from - to).iter() {
             match removed {
-                Modifier::REVERSED => io_err(queue!(w, SetAttribute(Attribute::NoReverse)))?,
-                Modifier::BOLD => io_err(queue!(w, SetAttribute(Attribute::NormalIntensity)))?,
-                Modifier::ITALIC => io_err(queue!(w, SetAttribute(Attribute::NoItalic)))?,
-                Modifier::UNDERLINED => io_err(queue!(w, SetAttribute(Attribute::NoUnderline)))?,
-                Modifier::DIM => io_err(queue!(w, SetAttribute(Attribute::NormalIntensity)))?,
-                Modifier::CROSSED_OUT => io_err(queue!(w, SetAttribute(Attribute::NotCrossedOut)))?,
+                Modifier::REVERSED => queue!(w, SetAttribute(Attribute::NoReverse))?,
+                Modifier::BOLD => queue!(w, SetAttribute(Attribute::NormalIntensity))?,
+                Modifier::ITALIC => queue!(w, SetAttribute(Attribute::NoItalic))?,
+                Modifier::UNDERLINED => queue!(w, SetAttribute(Attribute::NoUnderline))?,
+                Modifier::DIM => queue!(w, SetAttribute(Attribute::NormalIntensity))?,
+                Modifier::CROSSED_OUT => queue!(w, SetAttribute(Attribute::NotCrossedOut))?,
                 _ => unreachable!("Unknown modifier flag"),
             }
         }
         for added in (to - from).iter() {
             match added {
-                Modifier::REVERSED => io_err(queue!(w, SetAttribute(Attribute::Reverse)))?,
-                Modifier::BOLD => io_err(queue!(w, SetAttribute(Attribute::Bold)))?,
-                Modifier::ITALIC => io_err(queue!(w, SetAttribute(Attribute::Italic)))?,
-                Modifier::UNDERLINED => io_err(queue!(w, SetAttribute(Attribute::Underlined)))?,
-                Modifier::DIM => io_err(queue!(w, SetAttribute(Attribute::Dim)))?,
-                Modifier::CROSSED_OUT => io_err(queue!(w, SetAttribute(Attribute::CrossedOut)))?,
+                Modifier::REVERSED => queue!(w, SetAttribute(Attribute::Reverse))?,
+                Modifier::BOLD => queue!(w, SetAttribute(Attribute::Bold))?,
+                Modifier::ITALIC => queue!(w, SetAttribute(Attribute::Italic))?,
+                Modifier::UNDERLINED => queue!(w, SetAttribute(Attribute::Underlined))?,
+                Modifier::DIM => queue!(w, SetAttribute(Attribute::Dim))?,
+                Modifier::CROSSED_OUT => queue!(w, SetAttribute(Attribute::CrossedOut))?,
                 _ => unreachable!("Unknown modifier flag"),
             }
         }
@@ -88,7 +86,7 @@ impl Style {
     pub fn dim(self) -> Style {
         self.add_modifier(Modifier::DIM)
     }
-    
+
     pub fn italic(self) -> Style {
         self.add_modifier(Modifier::ITALIC)
     }

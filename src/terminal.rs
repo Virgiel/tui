@@ -14,7 +14,6 @@ use crossterm::{
 
 use super::{
     buffer::{Buffer, Cell},
-    io_err,
     style::{Color, Modifier},
     Canvas,
 };
@@ -69,13 +68,13 @@ impl Terminal {
 
     /// Queries the backend for size and resizes if it doesn't match the previous size.
     fn autoresize(&mut self) -> io::Result<()> {
-        let (w, h) = io_err(terminal::size().map(|(w, h)| (w as usize, h as usize)))?;
+        let (w, h) = terminal::size().map(|(w, h)| (w as usize, h as usize))?;
         if (w, h) != self.size {
             self.size = (w, h);
             self.draw_buffer.resize(w, h);
             self.prev_buffer.resize(w, h);
             // Force a full redraw on next frame
-            io_err(queue!(self.out, Clear(ClearType::All)))?;
+            queue!(self.out, Clear(ClearType::All))?;
             self.prev_buffer.reset();
         }
         Ok(())
@@ -107,10 +106,10 @@ impl Terminal {
         self.apply_change()?;
 
         match pos {
-            None => io_err(queue!(self.out, Hide))?,
+            None => queue!(self.out, Hide)?,
             Some((x, y)) => {
-                io_err(queue!(self.out, Show))?;
-                io_err(queue!(self.out, MoveTo(x as u16, y as u16)))?;
+                queue!(self.out, Show)?;
+                queue!(self.out, MoveTo(x as u16, y as u16))?;
             }
         }
 
@@ -126,17 +125,17 @@ impl Terminal {
         let mut modifier = Modifier::empty();
         let mut last_pos: Option<(u16, u16)> = None;
 
-        io_err(queue!(
+        queue!(
             out,
             SetForegroundColor(Color::Reset),
             SetBackgroundColor(Color::Reset),
             SetAttribute(Attribute::Reset)
-        ))?;
+        )?;
 
         for (x, y, cell) in content {
             // Move the cursor if the previous location was not (x - 1, y)
             if !matches!(last_pos, Some(p) if x == p.0 + 1 && y == p.1) {
-                io_err(queue!(out, MoveTo(x, y)))?;
+                queue!(out, MoveTo(x, y))?;
             }
             last_pos = Some((x, y));
             if cell.modifier != modifier {
@@ -145,13 +144,13 @@ impl Terminal {
             }
             let new = (cell.fg, cell.bg);
             match (colors.0 == new.0, colors.1 == new.1) {
-                (false, false) => io_err(queue!(out, SetColors(Colors::new(new.0, new.1))))?,
-                (false, true) => io_err(queue!(out, SetForegroundColor(new.0)))?,
-                (true, false) => io_err(queue!(out, SetBackgroundColor(new.1)))?,
+                (false, false) => queue!(out, SetColors(Colors::new(new.0, new.1)))?,
+                (false, true) => queue!(out, SetForegroundColor(new.0))?,
+                (true, false) => queue!(out, SetBackgroundColor(new.1))?,
                 (true, true) => {}
             }
             colors = new;
-            io_err(queue!(out, Print(&cell.char)))?;
+            queue!(out, Print(&cell.char))?;
         }
         Ok(())
     }

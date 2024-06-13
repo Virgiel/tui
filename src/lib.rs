@@ -1,5 +1,5 @@
+use std::fmt;
 use std::fmt::{Display, Write};
-use std::{fmt, io};
 use unicode_segmentation::UnicodeSegmentation;
 use unicode_width::{UnicodeWidthChar, UnicodeWidthStr};
 
@@ -298,8 +298,4 @@ impl SplitBuilder {
             )
         }
     }
-}
-
-fn io_err<R>(error: crossterm::Result<R>) -> io::Result<R> {
-    error.map_err(|e| io::Error::new(io::ErrorKind::Other, e.to_string()))
 }
